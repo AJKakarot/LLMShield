@@ -1,0 +1,30 @@
+%% "The journey of one question" - the diagram you TALK THROUGH on stage.
+%% Labels are deliberately terse: the slide carries a numbered legend beside
+%% it, so the picture only has to show the SHAPE of the path.
+%% Render: make diagram
+flowchart LR
+    Q(["question<br/>arrives"])
+    S1["<b>1</b><br/>within<br/>budget?"]
+    S2["<b>2</b><br/>safety check<br/><b>&rarr; LABEL</b>"]
+    BLK["blocked"]
+    S3["<b>3</b><br/>cache: wording<br/><b>+ LABEL</b>"]
+    S4["<b>4</b><br/>risky?<br/>re-check"]
+    S5["<b>5</b><br/>pick model"]
+    AI["the AI"]
+    S6["<b>6</b><br/>check<br/>answer"]
+    S7["<b>7</b><br/>save<br/><b>+ LABEL</b>"]
+    OUT(["answer"])
+
+    Q --> S1 --> S2
+    S2 -->|attack| BLK
+    S2 -->|safe| S3
+    S3 -->|found| S4 --> S6
+    S3 -->|miss| S5 --> AI --> S6
+    S6 --> S7 --> OUT
+
+    classDef ours fill:#fde68a,stroke:#b45309,stroke-width:3px,color:#000
+    classDef stop fill:#fecaca,stroke:#b91c1c,stroke-width:2px,color:#000
+    classDef ends fill:#dbeafe,stroke:#1d4ed8,stroke-width:2px,color:#000
+    class S3,S4,S7 ours
+    class BLK stop
+    class Q,OUT ends
