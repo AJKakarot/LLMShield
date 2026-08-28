@@ -17,3 +17,22 @@ also the hole:
 SentryGate closes the gap by working out the safety result **once**, saving it
 next to the answer, and making the cache check it on every lookup — so a match on
 wording alone is no longer a match.
+
+---
+
+## Team
+
+ajeet gupta &middot; Sarvagya Dabas &middot; Yashvit Gauri
+
+---
+
+## Quick start
+
+```bash
+docker compose build poc      # once, a few minutes, needs internet
+docker compose run --rm poc   # ~9 seconds, needs no internet at all
+```
+
+That is the whole Phase 1 result. No Python setup, no API keys, no accounts.
+
+Prefer running on your own Python? See [Running without Docker](#running-without-docker).
