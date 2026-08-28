@@ -166,3 +166,39 @@ make demo-fast   # keyword stand-in, ~5 s
 | `make deck` | Rebuild `docs/deck.html` |
 | `make diagram` | Redraw both diagrams from mermaid source |
 | `make phase2-up` | Start Qdrant + Redis (Phase 2 infrastructure) |
+
+---
+
+## Plan
+
+| Phase | Window | Goal | State |
+|---|---|---|---|
+| **1** | 18–22 Aug | Prove the problem is real | **done** |
+| **2** | 23 Aug – 26 Sep | Build the gateway; reproduce the problem on our own running system | not started |
+| **3** | 27 Sep – 24 Oct | Build the fix; show it beat the old version live | not started |
+| **4** | 25 Oct – 14 Nov | Measure everything properly; write the paper | not started |
+
+Plan of record: [`specs/001-introfile.md`](specs/001-introfile.md).
+Architecture: [`docs/architecture.mmd`](docs/architecture.mmd), redrawn each phase
+so it never drifts from what actually runs.
+
+---
+
+## Scope note
+
+Phase 1 is a **controlled demonstration**, not a live system. The cache-checked-
+before-filter ordering is true by construction here: `SemanticCache.lookup()`
+simply never consults the filter, which models the real architecture faithfully
+but is not yet measured on a running gateway. Phase 2 Week 4 reproduces it
+end-to-end on the real FastAPI gateway with published attack datasets.
+
+---
+
+## Environment notes
+
+- **Python 3.11**, not the 3.14 first on `PATH`. Presidio and spaCy — needed from
+  Phase 2 Week 2 — have no 3.14 wheels.
+- **CPU-only torch.** Keeps the image at 2.2 GB instead of ~6 GB. Neither model
+  needs a GPU, and the Phase 2 gateway will run CPU too.
+- Docker output is **byte-identical** to the host run, so the recorded backup
+  matches what an audience sees either way.
