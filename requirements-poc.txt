@@ -1,0 +1,3 @@
+# Phase 1 PoC only. Full gateway requirements land in Phase 2.
+# torch is installed CPU-only from https://download.pytorch.org/whl/cpu
+sentence-transformers==3.3.1
