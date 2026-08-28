@@ -137,3 +137,32 @@ exactly when you are talking about it.
 | Both fail | Deck slide 6 has the recorded output built in |
 | Running out of time | `make docker-demo-fast` — ~3 s, same numbers |
 
+---
+
+## Running without Docker
+
+```bash
+py -3.11 -m venv .venv
+source .venv/Scripts/activate
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install -r requirements-poc.txt
+
+make demo        # real filter, ~22 s (slower than Docker: cold model load)
+make demo-fast   # keyword stand-in, ~5 s
+```
+
+---
+
+## All commands
+
+| Command | Does |
+|---|---|
+| `make docker-build` | Build the image (~2.2 GB, models baked in) |
+| `make docker-demo` | **Live demo** — steps through on Enter |
+| `make docker-demo-fast` | Same, keyword stand-in, ~3 s |
+| `make demo` / `make demo-fast` | Same two, on local Python |
+| `make present` | Serve the deck at `127.0.0.1:8777` |
+| `make capture` | Re-record the run the deck quotes |
+| `make deck` | Rebuild `docs/deck.html` |
+| `make diagram` | Redraw both diagrams from mermaid source |
+| `make phase2-up` | Start Qdrant + Redis (Phase 2 infrastructure) |
