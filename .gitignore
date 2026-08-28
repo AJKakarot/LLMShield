@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+data/models/
+data/*.jsonl
+eval/figures/
+.pytest_cache/
