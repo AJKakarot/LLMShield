@@ -1,0 +1,11 @@
+.venv/
+.git/
+docs/
+specs/
+data/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+requirements-lock.txt
