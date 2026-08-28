@@ -14,7 +14,7 @@ also the hole:
 > **The cache can hand out an answer that the safety filter already blocked.**
 > The filter is not weak. It just never gets asked.
 
-SentryGate closes the gap by working out the safety result **once**, saving it
+LLMShield closes the gap by working out the safety result **once**, saving it
 next to the answer, and making the cache check it on every lookup — so a match on
 wording alone is no longer a match.
 
@@ -22,7 +22,7 @@ wording alone is no longer a match.
 
 ## Team
 
-ajeet gupta &middot; Sarvagya Dabas &middot; Yashvit Gauri
+Ajeet Gupta &middot; Alok Singh &middot; Ayush &middot; Khushi Singh
 
 ---
 
