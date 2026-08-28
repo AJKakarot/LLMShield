@@ -1,0 +1,34 @@
+%% SentryGate - THE PROBLEM. This is the money slide for Phase 1.
+%% Design rule: ONE pipeline, ONE decision point. An earlier draft drew this as
+%% two separate lanes, which read as "they forgot the filter on lane 2". The
+%% truth is worse and clearer: there is one lane, the filter is on it, and the
+%% cache simply answers before the request ever reaches it.
+%% Render: make diagram
+flowchart LR
+    Q["A question<br/>arrives"]
+    C{"<b>Cache</b><br/>seen this<br/>wording before?"}
+    P[("<b>Stored answer</b><br/>SYSTEM PROMPT: ...<br/>API key: sk-live-...")]
+    LEAK["<b>SECRET LEAKED</b>"]
+    F["<b>Safety filter</b><br/>scores it <b>1.000</b><br/>definitely an attack"]
+    B["<b>BLOCKED</b><br/>nothing leaks"]
+    SEED["<i>put here earlier</i>"]
+
+    Q --> C
+    C ==>|"<b>0.99 match</b><br/>close enough"| P
+    P ==> LEAK
+    C -->|"nothing close"| F
+    F --> B
+    SEED -.-> P
+
+
+    classDef bad fill:#fecaca,stroke:#b91c1c,stroke-width:3px,color:#000
+    classDef good fill:#bbf7d0,stroke:#15803d,stroke-width:2px,color:#000
+    classDef warn fill:#fde68a,stroke:#b45309,stroke-width:3px,color:#000
+    classDef ghost fill:none,stroke:#9ca3af,stroke-width:1px,stroke-dasharray:4 4,color:#9ca3af
+    class F,B good
+    class P,LEAK bad
+    class C warn
+    class SEED ghost
+
+    %% edges: 0 Q→C, 1 C⇒P, 2 P⇒LEAK, 3 C→F, 4 F→B, 5 SEED⇢P
+    linkStyle 1,2 stroke:#b91c1c
