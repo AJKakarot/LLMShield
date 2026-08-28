@@ -1,0 +1,32 @@
+# Phase 1: only `poc` does anything.
+# qdrant and redis are declared now because Phase 2 needs them and they are
+# pure images - no code required. Bring them up to prove the infra is real:
+#   docker compose up -d qdrant redis
+services:
+  poc:
+    build: .
+    image: sentrygate-poc
+    container_name: sentrygate-poc
+    # No network: proves the demo has no hidden internet dependency.
+    network_mode: none
+    # Override args at run time:  docker compose run --rm poc --fast
+    # command: ["--fast"]
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    container_name: sentrygate-qdrant
+    ports: ["6333:6333", "6334:6334"]
+    volumes: ["qdrant_data:/qdrant/storage"]
+    profiles: ["phase2"]
+
+  redis:
+    image: redis:7-alpine
+    container_name: sentrygate-redis
+    ports: ["6379:6379"]
+    command: ["redis-server", "--save", "60", "1"]
+    volumes: ["redis_data:/data"]
+    profiles: ["phase2"]
+
+volumes:
+  qdrant_data:
+  redis_data:
