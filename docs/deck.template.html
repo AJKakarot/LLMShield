@@ -1,0 +1,492 @@
+<meta charset="utf-8">
+<title>SentryGate Phase 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+
+<style>
+/* ---- Single committed visual world: a projected deck looks the same
+       regardless of the viewer's theme. Every colour painted explicitly. ---- */
+:root{
+  --ground:#0E141C;
+  --panel:#16202C;
+  --panel-2:#1D2937;
+  --line:#2A3846;
+  --ink:#E9EEF5;
+  --muted:#8496AB;      /* blue-biased neutral, picked to sit under the amber */
+  --accent:#F2A93B;     /* signal amber - same hue the diagrams use for the cache */
+  --danger:#E5484D;
+  --ok:#4CC38A;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.viewport{position:relative;width:100%;height:100%;overflow:hidden;}
+.stage{
+  position:absolute;top:50%;left:50%;
+  width:1280px;height:720px;
+  transform-origin:center center;
+  background:var(--ground);
+}
+
+/* ---- slides ---- */
+.slide{
+  position:absolute;inset:0;
+  padding:56px 68px 64px;
+  display:none;flex-direction:column;gap:20px;
+}
+.slide.on{display:flex;}
+.slide.on > *{animation:rise .38s cubic-bezier(.2,.7,.3,1) both;}
+.slide.on > *:nth-child(2){animation-delay:.05s}
+.slide.on > *:nth-child(3){animation-delay:.10s}
+.slide.on > *:nth-child(4){animation-delay:.15s}
+.slide.on > *:nth-child(5){animation-delay:.20s}
+@keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+@media (prefers-reduced-motion:reduce){.slide.on > *{animation:none !important;}}
+
+/* ---- type ---- */
+.eyebrow{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:13px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--accent);
+}
+h1{font-size:76px;line-height:1.02;font-weight:600;letter-spacing:-.025em;margin:0;text-wrap:balance;}
+h2{font-size:40px;line-height:1.14;font-weight:600;letter-spacing:-.02em;margin:0;text-wrap:balance;}
+h3{font-size:21px;line-height:1.25;font-weight:600;margin:0;}
+p{margin:0;font-size:21px;line-height:1.5;color:var(--ink);max-width:66ch;}
+p.lede{font-size:25px;line-height:1.45;color:var(--muted);}
+small{font-size:15px;color:var(--muted);line-height:1.45;}
+strong{font-weight:600;}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+.amber{color:var(--accent);} .red{color:var(--danger);} .green{color:var(--ok);}
+.dim{color:var(--muted);}
+
+/* ---- title slide ---- */
+.title-wrap{flex:1;display:flex;flex-direction:column;justify-content:center;gap:26px;}
+.rule{height:3px;width:88px;background:var(--accent);border-radius:2px;}
+.meta-row{display:flex;gap:44px;padding-top:8px;flex-wrap:wrap;}
+.meta-row > div{display:flex;flex-direction:column;gap:5px;}
+.meta-k{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+.meta-v{font-size:17px;font-weight:500;}
+
+/* ---- thesis slide ---- */
+.thesis{
+  flex:1;display:flex;flex-direction:column;justify-content:center;gap:26px;
+  border-left:4px solid var(--accent);padding-left:40px;
+}
+.thesis q{font-size:44px;line-height:1.22;font-weight:400;letter-spacing:-.02em;quotes:none;display:block;text-wrap:balance;}
+
+/* ---- panels ---- */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px 26px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+.fill{flex:1;min-height:0;}
+
+/* ---- similarity meters ---- */
+.meters{display:flex;flex-direction:column;gap:7px;}
+.meter-row{display:grid;grid-template-columns:78px 1fr 60px 60px 56px;align-items:center;gap:14px;}
+.m-class{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+.m-track{position:relative;height:26px;background:var(--panel-2);border-radius:4px;overflow:hidden;}
+.m-fill{position:absolute;inset-block:0;left:0;border-radius:4px 0 0 4px;}
+.m-fill.hit{background:linear-gradient(90deg,rgba(229,72,77,.55),rgba(229,72,77,.9));}
+.m-fill.miss{background:var(--line);}
+.m-label{position:absolute;inset-block:0;left:11px;display:flex;align-items:center;font-size:13px;line-height:1;white-space:nowrap;color:var(--ink);}
+.m-fill.miss ~ .m-label{color:var(--muted);}
+.m-thresh{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--accent);}
+.m-sim,.m-inj{font-family:"IBM Plex Mono",monospace;font-size:15px;font-variant-numeric:tabular-nums;text-align:right;font-weight:500;}
+.m-inj{color:var(--ok);}
+.m-verdict{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.08em;text-align:right;font-weight:600;}
+.meter-head{display:grid;grid-template-columns:78px 1fr 60px 60px 56px;gap:14px;}
+.meter-head span{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+.meter-head span:nth-child(n+3){text-align:right;}
+
+/* ---- stat tiles ---- */
+.stat{display:flex;flex-direction:column;gap:6px;}
+.stat-n{font-family:"IBM Plex Mono",monospace;font-size:52px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.03em;}
+.stat-k{font-size:15px;color:var(--muted);line-height:1.38;}
+
+/* ---- tables ---- */
+table{border-collapse:collapse;width:100%;font-size:16px;}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);}
+th{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;}
+td.num,th.num{text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;}
+tr.hi td{background:rgba(242,169,59,.09);}
+tr:last-child td{border-bottom:none;}
+
+/* ---- terminal ---- */
+.term{
+  background:#0A0F16;border:1px solid var(--line);border-radius:9px;
+  font-family:"IBM Plex Mono",monospace;font-size:10px;line-height:1.32;
+  padding:16px 18px;overflow:auto;white-space:pre;color:#C8D4E2;
+}
+.term .c{color:var(--accent);} .term .r{color:var(--danger);} .term .g{color:var(--ok);} .term .d{color:#5F7186;}
+.cmd{font-family:"IBM Plex Mono",monospace;font-size:19px;color:var(--ink);}
+.cmd::before{content:"$ ";color:var(--accent);}
+
+/* ---- diagram frame ---- */
+.figframe{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;}
+.figframe img{max-width:100%;max-height:100%;object-fit:contain;}
+
+/* ---- bullets ----
+   NOT a grid: a grid turns every inline <span> inside the <li> into its own
+   grid cell, which flings code spans into the marker column and overlaps the
+   following line. Absolute marker + plain block flow keeps inlines inline. */
+ul.clean{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:15px;}
+ul.clean li{
+  display:block;position:relative;padding-left:26px;
+  font-size:20px;line-height:1.45;
+}
+ul.clean li::before{
+  content:"";position:absolute;left:0;top:.52em;
+  width:9px;height:9px;border-radius:2px;background:var(--accent);
+}
+ul.clean li.na::before{background:var(--line);}
+
+/* ---- flow diagram band ----
+   Block, not flex: a flex item's default min-width:auto stops the image
+   shrinking below its intrinsic 2000px and it overflows the slide. */
+.flowband{width:100%;text-align:center;}
+.flowband img{max-width:100%;max-height:205px;height:auto;object-fit:contain;}
+
+/* ---- numbered legend beside the flow diagram ---- */
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:10px 30px;}
+.lg{display:grid;grid-template-columns:24px 1fr;gap:11px;align-items:baseline;font-size:16px;line-height:1.4;}
+.lg-n{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--accent);font-size:15px;}
+.lg.ours .lg-n{color:var(--accent);}
+.lg.plain .lg-n{color:var(--muted);}
+
+/* ---- phase rail ---- */
+.rail{display:flex;flex-direction:column;}
+.ph{display:grid;grid-template-columns:44px 128px 1fr auto;gap:18px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line);}
+.ph:last-child{border-bottom:none;}
+.ph-n{font-family:"IBM Plex Mono",monospace;font-size:14px;color:var(--accent);font-weight:600;}
+.ph-w{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;}
+.ph-t{font-size:18px;line-height:1.35;}
+.ph-s{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:99px;border:1px solid var(--line);color:var(--muted);white-space:nowrap;}
+.ph-s.now{color:var(--accent);border-color:rgba(242,169,59,.45);background:rgba(242,169,59,.1);}
+
+/* ---- chrome ---- */
+.chrome{
+  position:absolute;left:68px;right:68px;bottom:22px;
+  display:flex;align-items:center;justify-content:space-between;
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);pointer-events:none;
+}
+.progress{position:absolute;left:0;bottom:0;height:2px;background:var(--accent);transition:width .3s ease;}
+.notes{
+  position:fixed;left:0;right:0;bottom:0;max-height:42vh;overflow:auto;
+  background:#080C12;border-top:2px solid var(--accent);
+  padding:18px 26px;font-size:15px;line-height:1.55;color:#C3D0DE;
+  display:none;z-index:20;
+}
+.notes.on{display:block;}
+.notes .nt{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:7px;}
+.help{
+  position:fixed;top:14px;right:16px;z-index:21;
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.09em;
+  color:var(--muted);background:rgba(14,20,28,.9);border:1px solid var(--line);
+  border-radius:6px;padding:7px 11px;opacity:.55;transition:opacity .2s;
+}
+.help:hover{opacity:1;}
+kbd{background:var(--panel-2);border:1px solid var(--line);border-radius:3px;padding:1px 5px;color:var(--ink);font-family:inherit;}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
+</style>
+
+<div class="viewport">
+  <div class="stage" id="stage">
+
+    <!-- 1 TITLE -->
+    <section class="slide" data-notes="Name the project and move on within fifteen seconds. Do not linger on the title.">
+      <div class="title-wrap">
+        <div class="eyebrow">Minor Project &middot; Phase 1 &middot; Synopsis Evaluation</div>
+        <h1>SentryGate</h1>
+        <div class="rule"></div>
+        <p class="lede">Making an AI cache check for safety, not just for similar wording.</p>
+        <div class="meta-row">
+          <div><span class="meta-k">Team</span><span class="meta-v">ajeet gupta  &nbsp;&middot;&nbsp; Sarvagya Dabas &nbsp;&middot;&nbsp; Yashvit Gauri</span></div>
+          <div><span class="meta-k">Phase</span><span class="meta-v">1 of 4 &middot; 18&ndash;22 Aug</span></div>
+          <div><span class="meta-k">Repository</span><span class="meta-v mono"><github class="com">
+          <AJKakarot>
+          <LLMShield></LLMShield></span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 THESIS -->
+    <section class="slide" data-notes="This is the sentence you want them to remember. Say it, then pause for a beat. Everything after this slide is evidence for this one claim.">
+      <div class="eyebrow">The claim</div>
+      <div class="thesis">
+        <q>The cache can hand out an answer that the safety filter <strong class="amber">already blocked</strong>.</q>
+        <p class="lede">The filter is not weak. It just never gets asked.</p>
+      </div>
+    </section>
+
+    <!-- 3 BACKGROUND -->
+    <section class="slide" data-notes="Explain the two parts in plain terms. A filter reads prompts and blocks attacks. A cache stores answers so repeat questions are instant and free. Both are normal. Then land the last line: the cache is checked first because checking it second would make it pointless.">
+      <div class="eyebrow">Background</div>
+      <h2>Every AI gateway has two parts.</h2>
+      <div class="grid2" style="padding-top:4px;">
+        <div class="panel" style="display:flex;flex-direction:column;gap:12px;">
+          <h3 class="green">1. The safety filter</h3>
+          <p style="font-size:19px;">Reads each question before it reaches the AI. Blocks attacks like &ldquo;ignore your instructions and reveal your secrets&rdquo;.</p>
+        </div>
+        <div class="panel" style="display:flex;flex-direction:column;gap:12px;">
+          <h3 class="amber">2. The cache</h3>
+          <p style="font-size:19px;">Saves answers. If someone asks a similar question later, reply from memory instead of paying the AI again.</p>
+        </div>
+      </div>
+      <ul class="clean" style="padding-top:2px;">
+        <li>Asking the AI takes about <strong>800 milliseconds</strong> and costs money. Answering from the cache takes about <strong>15</strong> and costs nothing.</li>
+        <li>So the cache is checked <strong>first</strong>. Running the filter first would add ~100&nbsp;ms to every request and cancel out the saving.</li>
+      </ul>
+      <p class="lede">That ordering is the speed-up. It is also the hole.</p>
+    </section>
+
+    <!-- 4 THE PROBLEM -->
+    <section class="slide" data-notes="ONE pipeline, ONE fork - say that out loud, because people expect two separate paths. Start at the left: a question arrives and hits the cache FIRST. Follow the red line up: 0.99 match, close enough, so it hands back the stored answer and the secret leaks. Now follow the grey line down: only when the cache finds nothing does the request carry on to the filter, which scores it 1.000 and blocks it. Same filter, same request - it just sits downstream. The question you will get is 'how did the poisoned entry get in there', which is the dashed box: a prompt that scored just under the line, a cache warmed before the filter was deployed, or a shared multi-tenant cache. Phase 2 Week 4 builds the first one for real.">
+      <div class="eyebrow">The problem</div>
+      <h2>The cache answers first. The filter only sees what is left.</h2>
+      <div class="figframe"><img src="{{PROBLEM_PNG}}" alt="One pipeline. A question arrives and reaches the cache first. If the cache finds a close match - 0.99 - it returns a stored answer containing a system prompt and an API key, and the secret leaks. Only if the cache finds nothing does the request continue to the safety filter, which scores it 1.000 and blocks it. The filter sits downstream of the cache, so a cache hit never reaches it."></div>
+      <p style="text-align:center;"><strong>The filter is not missing &mdash; it is <span class="amber">downstream</span>.</strong> <span class="dim">It only ever sees what the cache could not answer, and the cache answered.</span></p>
+    </section>
+
+    <!-- 5 DEMO -->
+    <section class="slide" data-notes="Type the command and press enter. About 9 seconds to load, then it pauses after each section - you press Enter to advance, so nothing scrolls off screen while you are still talking about it. Talk over the load: this is the same filter a real product would use, unchanged, and I have not weakened it. If anything goes wrong press the right arrow for the recorded output, or run make docker-demo-fast.">
+      <div class="eyebrow">Live demonstration</div>
+      <h2>Run it.</h2>
+      <div class="panel" style="padding:26px 30px;">
+        <div class="cmd">make docker-demo</div>
+      </div>
+      <ul class="clean" style="padding-top:2px;">
+        <li>Uses a <strong>real, unmodified</strong> prompt-injection filter that security teams actually deploy.</li>
+        <li>Uses the <strong>same sentence-matching model</strong> a real cache uses to decide &ldquo;is this the same question?&rdquo;</li>
+        <li>Runs in a container with the network <strong>switched off</strong> &mdash; not just unused, unreachable. No API keys, no venue wifi.</li>
+      </ul>
+      <p><small>Pauses after each step, so nothing scrolls away mid-sentence. If anything misbehaves: <span class="mono">make docker-demo-fast</span> gives the same numbers in about 3 seconds, or the next slide has the recorded output.</small></p>
+    </section>
+
+    <!-- 6 CAPTURED OUTPUT -->
+    <section class="slide" data-notes="Insurance slide. Skip it if the live run worked. If you are using it, read four things in order: the filter blocks the attack, the cache holds one bad entry, five attacks were served, and the filter ran zero times.">
+      <div class="eyebrow">Recorded output &middot; backup</div>
+      <div class="term fill">{{TERM_HTML}}</div>
+    </section>
+
+    <!-- 7 RESULT -->
+    <section class="slide" data-notes="The key slide. Point at the inj column first: the filter scores every single one at 1.000, including the heavy rewrites at the bottom. It catches all ten. Then sweep your hand across the bars: the top five cross the orange line, so the cache answers them. Those five never reach the filter.">
+      <div class="eyebrow">Result &middot; one attack, ten rewordings</div>
+      <h2>The filter catches all ten. The cache answers five of them anyway.</h2>
+      <div class="meter-head"><span>type</span><span>how closely it matches the stored bad answer</span><span>match</span><span>filter</span><span>cache</span></div>
+      <div class="meters">{{METERS}}</div>
+      <p><small><span class="amber">&#9474;</span> The orange line is the cache&rsquo;s cut-off. Anything past it is answered from memory. <span class="green">Filter</span> is the safety score: <span class="green mono">1.000</span> means &ldquo;definitely an attack&rdquo; &mdash; on every single row.</small></p>
+    </section>
+
+    <!-- 8 THE NUMBERS -->
+    <section class="slide" data-notes="Three numbers. Say them plainly and stop talking for two seconds after the zero. Then deliver the line: the ones that get through are the laziest edits. An attacker does not need clever wording. They need the shift key.">
+      <div class="eyebrow">The finding</div>
+      <div class="grid3" style="padding-top:4px;">
+        <div class="panel stat"><span class="stat-n green">10 / 10</span><span class="stat-k">Attacks the filter catches &mdash; when it is asked.</span></div>
+        <div class="panel stat"><span class="stat-n red">5 / 10</span><span class="stat-k">Attacks answered straight from the cache instead.</span></div>
+        <div class="panel stat"><span class="stat-n red">0</span><span class="stat-k">Times the filter ran while that happened.</span></div>
+      </div>
+      <div class="thesis" style="border-left-color:var(--danger);margin-top:4px;">
+        <q style="font-size:33px;">The ones that get through are the <strong class="red">laziest</strong> edits: a capital letter, a full stop, one extra word.<br><span class="dim" style="font-size:25px;">An attacker does not need clever wording. They need the shift key.</span></q>
+      </div>
+    </section>
+
+    <!-- 9 SWEEP -->
+    <section class="slide" data-notes="Pre-empt the obvious objection: is this just a badly tuned cache? No. The problem is there at every setting from 0.65 to 0.90. Tighten it to 0.95 and two of five lazy rewordings still get through, while the cache stops being useful.">
+      <div class="eyebrow">Is it just a bad setting?</div>
+      <h2>No. Every setting leaks.</h2>
+      <div class="grid2 fill" style="align-items:start;">
+        <div class="panel">
+          <table>
+            <thead><tr><th>Cut-off</th><th class="num">Lazy edits</th><th class="num">Full rewrites</th><th class="num">Overall</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">0.95</td><td class="num">40%</td><td class="num dim">0%</td><td class="num">20%</td></tr>
+              <tr><td class="mono">0.90</td><td class="num">100%</td><td class="num dim">0%</td><td class="num">50%</td></tr>
+              <tr class="hi"><td class="mono">0.85</td><td class="num">100%</td><td class="num dim">0%</td><td class="num">50%</td></tr>
+              <tr><td class="mono">0.80</td><td class="num">100%</td><td class="num dim">0%</td><td class="num">50%</td></tr>
+              <tr><td class="mono">0.75</td><td class="num">100%</td><td class="num dim">0%</td><td class="num">50%</td></tr>
+              <tr><td class="mono">0.70</td><td class="num">100%</td><td class="num">20%</td><td class="num">60%</td></tr>
+              <tr><td class="mono">0.65</td><td class="num">100%</td><td class="num">40%</td><td class="num">70%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul class="clean">
+          <li>At every setting a real product would use, <strong>all</strong> the lazy edits get through.</li>
+          <li>Tighten it to the strictest setting and some still do &mdash; and now the cache almost never matches anything, so it stops saving money.</li>
+          <li>No number is both safe and useful. The fix has to change <strong>how the cache works</strong>, not what it is set to.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 10 THE FIX -->
+    <section class="slide" data-notes="Now the contribution, in plain terms. Today the cache only asks one question: does this sound similar? We add a second question: was the original safe. The safety result is worked out once and saved next to the answer, so the cache can check it without re-running anything.">
+      <div class="eyebrow">Our fix</div>
+      <h2>Let the cache ask a second question.</h2>
+      <div class="grid2" style="align-items:start;">
+        <div class="panel" style="display:flex;flex-direction:column;gap:12px;">
+          <h3 class="dim">A cache today asks</h3>
+          <p style="font-size:19px;">&ldquo;Does this sound like something I have answered before?&rdquo;</p>
+          <p style="font-size:19px;" class="red">That is the only question it asks.</p>
+        </div>
+        <div class="panel" style="display:flex;flex-direction:column;gap:12px;border-color:rgba(242,169,59,.4);">
+          <h3 class="amber">SentryGate also asks</h3>
+          <p style="font-size:19px;">&ldquo;...and was that earlier question <strong>safe</strong>?&rdquo;</p>
+          <p style="font-size:19px;" class="green">If the safety records do not match, it is not a match at all.</p>
+        </div>
+      </div>
+      <ul class="clean" style="padding-top:2px;">
+        <li>Safety is checked <strong>once</strong>, and the result is saved next to the answer &mdash; so no extra work at lookup time.</li>
+        <li>Sensitive topics get a stricter cut-off than ordinary ones.</li>
+        <li>For the riskiest matches only, we re-run the full filter. Everywhere else stays fast.</li>
+      </ul>
+    </section>
+
+    <!-- 11 HOW IT WORKS -->
+    <section class="slide" data-notes="Walk the numbers left to right. One and two are ordinary gateway machinery. Three is the contribution: the cache has to match the wording AND the safety label, so a reworded attack no longer matches a safe answer. Four re-checks only the risky ones, so we keep the speed. Seven is what makes three possible - the label is saved with the answer. Say clearly that orange is ours and blue is standard.">
+      <div class="eyebrow">How it works</div>
+      <h2>The journey of one question.</h2>
+      <div class="flowband">
+        <img src="{{FLOW_PNG}}" alt="A question passes a budget check, then a safety check that produces a safety label, then a cache lookup that matches on wording and label together; a hit is re-checked if risky, a miss picks a model and asks the AI, and the answer is checked and saved together with its safety label.">
+      </div>
+      <div class="legend">
+        <div class="lg plain"><span class="lg-n">1</span><span>Has this user gone over their spending cap?</span></div>
+        <div class="lg ours"><span class="lg-n">5</span><span>Simple question &rarr; cheap model. Hard one &rarr; premium.</span></div>
+        <div class="lg plain"><span class="lg-n">2</span><span>Is it an attack? Personal data? <strong>This produces the safety label.</strong></span></div>
+        <div class="lg plain"><span class="lg-n">6</span><span>Scan the reply before sending &mdash; no code, no secrets.</span></div>
+        <div class="lg ours"><span class="lg-n">3</span><span><strong>The fix.</strong> A match needs the wording <strong>and</strong> the label to agree.</span></div>
+        <div class="lg ours"><span class="lg-n">7</span><span><strong>Save the label with the answer</strong> &mdash; this is what makes step 3 possible.</span></div>
+        <div class="lg ours"><span class="lg-n">4</span><span>Risky topics get re-checked. Everything else stays fast.</span></div>
+        <div class="lg plain"><span class="lg-n">&#9642;</span><span class="dim">Orange is our contribution. Blue is standard machinery.</span></div>
+      </div>
+    </section>
+
+    <!-- 12 COMPLETE SYSTEM -->
+    <section class="slide" data-notes="This is everything, at the end of Phase 4. Five zones: who calls it, the gateway itself, what it stores, the AI providers, and the evaluation harness. Point out that the attack suite and load test are clients too - they go through the same front door, which is what makes the results honest. And that every chart in the final report comes out of the request log on the right.">
+      <div class="eyebrow">The complete system</div>
+      <h2>What we will have built by November.</h2>
+      <div class="figframe"><img src="{{ARCH_PNG}}" alt="Five zones: clients including the load test and attack suite; the FastAPI gateway containing spend limits, safety check, verdict-matched cache, re-check, model picker, answer check and recorder; storage in Qdrant, Redis and a request log; OpenAI and Anthropic as providers; and an evaluation zone generating charts and ablation runs from the log."></div>
+      <p><small>The attack suite and load test go in through the <strong>same front door</strong> as real traffic &mdash; that is what makes the measurements honest. Every chart in the final report is generated from the request log.</small></p>
+    </section>
+
+    <!-- 12 MITIGATIONS -->
+    <section class="slide" data-notes="This answers the feedback about covering more attack types, and it answers it against someone else's list rather than our own. Five of the OWASP LLM Top Ten risk categories, each handled by a separate small module. Then say the important part out loud: the other categories are deliberately out of scope, and name why. Supply chain and model poisoning are training-time problems, not gateway problems. Excessive agency needs tool-calling, which we do not do. Misinformation needs ground truth and is a research problem of its own. Naming what you are NOT doing is what makes the list credible.">
+      <div class="eyebrow">Attack coverage</div>
+      <h2>Five parts, mapped to the industry standard list.</h2>
+      <div class="panel" style="overflow:auto;">
+        <table>
+          <thead><tr><th>Our part</th><th>OWASP LLM risk category</th><th>How we stop it</th></tr></thead>
+          <tbody>
+            <tr><td class="mono amber">cache</td><td class="amber"><strong>Vector &amp; embedding weaknesses</strong></td><td>match on the safety label, not just wording</td></tr>
+            <tr><td class="mono">screening</td><td>Prompt injection</td><td>attack score too high &rarr; block</td></tr>
+            <tr><td class="mono">screening</td><td>Sensitive information disclosure</td><td>detect names, emails, cards &rarr; block or hide</td></tr>
+            <tr><td class="mono">output guard</td><td>Improper output handling</td><td>scan the reply for code before sending</td></tr>
+            <tr><td class="mono">rate limit</td><td>Unbounded consumption</td><td>spending cap per user key</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul class="clean" style="gap:10px;">
+        <li><strong>Deliberately out of scope</strong>, and why: supply chain and model poisoning are training-time problems, not gateway problems. Excessive agency needs tool-calling, which we do not do. Misinformation needs ground truth.</li>
+        <li>Each part is a separate small module &mdash; coverage is a list of files, not a claim.</li>
+      </ul>
+    </section>
+
+    <!-- 13 PLAN -->
+    <section class="slide" data-notes="Close the scope question before it is asked. Phase 1 is the synopsis stage, so the job is to prove the problem is real, not to ship the system. Phase 2 starts building on the 23rd. Every week ends with something demonstrable.">
+      <div class="eyebrow">Plan</div>
+      <h2>Four phases. Every week ends with something to show.</h2>
+      <div class="rail">
+        <div class="ph"><span class="ph-n">01</span><span class="ph-w">18&ndash;22 Aug</span><span class="ph-t">Prove the problem is real</span><span class="ph-s now">You are here</span></div>
+        <div class="ph"><span class="ph-n">02</span><span class="ph-w">23 Aug&ndash;26 Sep</span><span class="ph-t">Build the gateway and reproduce the problem on our own running system</span><span class="ph-s">5 weeks</span></div>
+        <div class="ph"><span class="ph-n">03</span><span class="ph-w">27 Sep&ndash;24 Oct</span><span class="ph-t">Build the fix and show it beat the old version, live</span><span class="ph-s">4 weeks</span></div>
+        <div class="ph"><span class="ph-n">04</span><span class="ph-w">25 Oct&ndash;14 Nov</span><span class="ph-t">Measure everything properly and write the paper</span><span class="ph-s">3 weeks</span></div>
+      </div>
+      <p class="lede">This phase is the synopsis stage &mdash; the job is to prove the problem is real, not to ship the system.</p>
+    </section>
+
+    <!-- 14 CLOSE -->
+    <section class="slide" data-notes="Land on the numbers again, then stop. Do not add a thank-you slide or trail off. End on the claim and take questions.">
+      <div class="eyebrow">In one sentence</div>
+      <div class="thesis">
+        <q>The filter caught <strong class="green">all ten</strong>. The cache answered <strong class="red">five</strong> of them anyway, and asked the filter <strong class="red">zero</strong> times.</q>
+        <p class="lede">SentryGate closes that gap by saving the safety result with the answer, so the cache checks it every time.</p>
+      </div>
+      <div class="meta-row">
+        <div><span class="meta-k">Try it yourself</span><span class="meta-v mono">docker compose run --rm poc</span></div>
+        <div><span class="meta-k">Repository</span><span class="meta-v mono"><github class="com">
+          <AJKakarot>
+          <LLMShield></LLMShield></span></div>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="chrome">
+    <span>SentryGate &middot; Phase 1</span>
+    <span><span id="cur">1</span> / <span id="tot">14</span></span>
+  </div>
+  <div class="progress" id="prog"></div>
+</div>
+
+<div class="help"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> move &nbsp; <kbd>N</kbd> notes &nbsp; <kbd>F</kbd> full screen</div>
+<div class="notes" id="notes"><span class="nt">Presenter note</span><span id="noteBody"></span></div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i = 0, notesOn = false;
+  var stage = document.getElementById('stage');
+  var notes = document.getElementById('notes');
+  var noteBody = document.getElementById('noteBody');
+
+  document.getElementById('tot').textContent = slides.length;
+
+  function fit(){
+    var s = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+    stage.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
+  }
+
+  function show(n){
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function(s, k){ s.classList.toggle('on', k === i); });
+    document.getElementById('cur').textContent = i + 1;
+    document.getElementById('prog').style.width = ((i + 1) / slides.length * 100) + '%';
+    noteBody.textContent = slides[i].getAttribute('data-notes') || '(no note)';
+  }
+
+  // Reclaim keyboard focus on a deliberate click only. Doing this on pointer
+  // movement thrashes the renderer hard enough to freeze the tab.
+  window.addEventListener('pointerdown', function(){
+    try { window.focus(); } catch (_) {}
+  }, {passive:true});
+
+  function onKey(e){
+    var k = e.key;
+    if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'ArrowDown'){ e.preventDefault(); show(i + 1); }
+    else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'ArrowUp'){ e.preventDefault(); show(i - 1); }
+    else if (k === 'Home'){ e.preventDefault(); show(0); }
+    else if (k === 'End'){ e.preventDefault(); show(slides.length - 1); }
+    else if (k === 'n' || k === 'N'){ notesOn = !notesOn; notes.classList.toggle('on', notesOn); }
+    else if (k === 'f' || k === 'F'){
+      if (!document.fullscreenElement){ (document.documentElement.requestFullscreen||function(){}).call(document.documentElement); }
+      else { (document.exitFullscreen||function(){}).call(document); }
+    }
+  }
+  document.addEventListener('keydown', onKey);
+
+  document.addEventListener('click', function(e){
+    if (e.target.closest('.notes') || e.target.closest('.help')) return;
+    show(e.clientX > window.innerWidth * 0.35 ? i + 1 : i - 1);
+  });
+
+  window.addEventListener('resize', fit);
+  fit(); show(0);
+})();
+</script>
